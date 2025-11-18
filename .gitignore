@@ -1,0 +1,43 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pyd
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+.env
+.env.*
+
+# IDE / Editor
+.idea/
+.vscode/
+*.iml
+
+# Buildozer / Python-for-Android artifacts
+.buildozer/
+.gradle/
+.gradle-cache/
+*.gradle/
+
+# Distribution outputs
+bin/
+*.apk
+*.aab
+*.aab.zip
+*.zip
+*.log
+
+# Misc
+.DS_Store
+Thumbs.db
+*.orig
+
+# Keystore and secrets
+*.keystore
+*.jks

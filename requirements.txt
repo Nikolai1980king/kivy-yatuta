@@ -1,0 +1,5 @@
+kivy>=2.1.0
+pyjnius>=1.7.0
+python-for-android>=2023.1.0
+cython==0.29.36
+
