@@ -54,7 +54,7 @@ if [ $? -eq 0 ]; then
     echo "✅ APK успешно установлен!"
     echo ""
     echo "Запуск приложения..."
-    adb shell am start -n ru.yatuta.yatuta/org.kivy.android.PythonActivity
+    adb shell am start -n ru.yatuta.yatuta/org.kivy.android.YatutaActivity
     echo ""
     echo "Приложение запущено на устройстве!"
 else

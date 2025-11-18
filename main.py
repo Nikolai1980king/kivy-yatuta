@@ -6,7 +6,7 @@ Includes Android-specific glue for geolocation and image upload.
 from __future__ import annotations
 
 import os
-import time
+import threading
 import traceback
 
 from kivy.app import App
@@ -64,7 +64,11 @@ if platform == "android":
         if request_permissions:
             request_permissions(base_permissions)
 
-    from jnius import autoclass  # type: ignore  # pylint: disable=import-error
+    from jnius import (
+        PythonJavaClass,  # type: ignore  # pylint: disable=import-error
+        autoclass,
+        java_method,
+    )
 
     WebView = autoclass("android.webkit.WebView")
     WebViewClient = autoclass("android.webkit.WebViewClient")
@@ -74,6 +78,18 @@ if platform == "android":
     PythonActivity = autoclass("org.kivy.android.YatutaActivity")
     GeoWebChromeClient = autoclass("org.kivy.android.GeoWebChromeClient")
     WebChromeClient = autoclass("android.webkit.WebChromeClient")
+
+    class _UIRunnable(PythonJavaClass):
+        __javainterfaces__ = ["java/lang/Runnable"]
+        __javacontext__ = "app"
+
+        def __init__(self, func):
+            super().__init__()
+            self._func = func
+
+        @java_method("()V")
+        def run(self):
+            self._func()
 
     class AndroidWebView(BoxLayout):
         def __init__(self, url: str, **kwargs) -> None:
@@ -116,8 +132,30 @@ if platform == "android":
 
             return activity
 
-        def _run_on_ui(self, activity, func):
-            activity.runOnUiThread(func)
+        def _run_on_ui(self, activity, func, wait=False):
+            if not activity:
+                return
+
+            if not wait:
+                activity.runOnUiThread(_UIRunnable(func))
+                return
+
+            event = threading.Event()
+            error_holder = {}
+
+            def runner():
+                try:
+                    func()
+                except Exception as exc:  # noqa: broad-except
+                    error_holder["error"] = exc
+                finally:
+                    event.set()
+
+            activity.runOnUiThread(_UIRunnable(runner))
+            if not event.wait(2.0):
+                log_error("UI runnable timed out")
+            if error_holder.get("error"):
+                raise error_holder["error"]
 
         def _show_error(self, message: str) -> None:
             from kivy.uix.label import Label
@@ -154,8 +192,10 @@ if platform == "android":
                 except Exception as exc:  # noqa: broad-except
                     result["error"] = exc
 
-            self._run_on_ui(activity, create_view)
-            time.sleep(0.3)
+            try:
+                self._run_on_ui(activity, create_view, wait=True)
+            except Exception as exc:  # noqa: broad-except
+                result["error"] = exc
 
             webview = result["view"]
             if webview is None:
